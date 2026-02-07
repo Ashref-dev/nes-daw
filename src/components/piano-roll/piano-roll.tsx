@@ -57,8 +57,8 @@ const PianoRoll = () => {
     const gridPixelY = mouseY;
 
     const tick = (gridPixelX / zoomX) + scrollX;
-    const noteExact = 127 - (gridPixelY + scrollY) / zoomY;
-    const midiNote = Math.floor(noteExact);
+    const noteExact = 127 - (gridPixelY + scrollY - zoomY / 2) / zoomY;
+    const midiNote = Math.round(noteExact);
 
     return { tick, midiNote, gridPixelX, gridPixelY };
   };

@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { scheduler } from '@/audio/scheduler';
 import { useDAWStore } from '@/store/daw-store';
 import { useNESEngine } from './use-nes-engine';
+import { useScheduler } from './use-scheduler';
 
 const LOWER_ROW: Record<string, number> = {
   z: 48, s: 49, x: 50, d: 51, c: 52, v: 53,
@@ -28,6 +29,18 @@ export function useKeyboard() {
       if (!isReady) return;
       if (e.repeat) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        const state = useDAWStore.getState();
+        const scheduler = useScheduler();
+        if (state.transportState === 'playing' || state.transportState === 'recording') {
+          scheduler.stop();
+        } else {
+          scheduler.play();
+        }
+        return;
+      }
 
       const key = e.key.toLowerCase();
       const midiNote = KEY_MAP[key];

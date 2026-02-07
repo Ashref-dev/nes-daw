@@ -18,7 +18,36 @@ export const INSTRUMENTS: Record<string, Instrument> = {
     channel: 'pulse2',
     dutyCycle: 0.25,
     envelope: { attack: 0, decay: 0.5, sustain: 0.3, release: 0.01 },
-    // Echo is same as lead but quieter (handled by velocity in engine)
+  },
+  'pulse2-50': {
+    id: 'pulse2-50',
+    name: 'Square 50%',
+    channel: 'pulse2',
+    dutyCycle: 0.5,
+    envelope: { attack: 0, decay: 0.8, sustain: 0.7, release: 0.05 },
+  },
+  'pulse2-25': {
+    id: 'pulse2-25',
+    name: 'Pulse 25%',
+    channel: 'pulse2',
+    dutyCycle: 0.25,
+    envelope: { attack: 0, decay: 0.6, sustain: 0.5, release: 0.02 },
+  },
+  'pulse2-125': {
+    id: 'pulse2-125',
+    name: 'Pulse 12.5%',
+    channel: 'pulse2',
+    dutyCycle: 0.125,
+    envelope: { attack: 0, decay: 0.4, sustain: 0.4, release: 0.01 },
+  },
+  'pulse2-arp': {
+    id: 'pulse2-arp',
+    name: 'Arpeggio',
+    channel: 'pulse2',
+    dutyCycle: 0.5,
+    envelope: { attack: 0, decay: 1.0, sustain: 0.8, release: 0.02 },
+    arpeggioPattern: [0, 4, 7],
+    arpeggioSpeed: 3,
   },
   'pulse-50': {
     id: 'pulse-50',

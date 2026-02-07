@@ -100,7 +100,7 @@ const createDefaultPattern = (name: string): Pattern => ({
 const createDefaultTracks = (): Track[] => {
   const defaults: { name: string; channel: NESChannel; instrument: string }[] = [
     { name: 'Pulse 1', channel: 'pulse1', instrument: 'mm-lead' },
-    { name: 'Pulse 2', channel: 'pulse2', instrument: 'mm-echo' },
+    { name: 'Pulse 2', channel: 'pulse2', instrument: 'pulse2-50' },
     { name: 'Triangle', channel: 'triangle', instrument: 'mm-bass' },
     { name: 'Noise', channel: 'noise', instrument: 'mm-kick' },
   ];
