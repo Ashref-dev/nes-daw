@@ -72,6 +72,8 @@ export function TrackPanel() {
                 flexDirection: 'column',
                 gap: '8px',
                 position: 'relative',
+                opacity: track.muted ? 0.4 : 1,
+                filter: track.muted ? 'grayscale(100%)' : 'none',
               }}
             >
               <div

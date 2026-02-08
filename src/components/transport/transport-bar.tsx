@@ -56,7 +56,7 @@ export function TransportBar({ onPlay, onStop, onRecord }: TransportBarProps) {
   const beat = Math.floor((currentTick % (ppqn * 4)) / ppqn) + 1;
   const tick = currentTick % ppqn;
 
-  const posStr = `${String(bar).padStart(3, '0')}:${String(beat).padStart(2, '0')}:${String(tick).padStart(2, '0')}`;
+  const posStr = `${bar}:${String(beat).padStart(2, '0')}:${String(tick).padStart(2, '0')}`;
 
   const isPlaying = transportState === 'playing';
   const isRecording = transportState === 'recording';
@@ -105,6 +105,15 @@ export function TransportBar({ onPlay, onStop, onRecord }: TransportBarProps) {
 
   return (
     <div style={base}>
+      <style>{`
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+        .blink-record {
+          animation: blink 1s ease-in-out infinite;
+        }
+      `}</style>
       <input
         type="text"
         value={song.name}
@@ -115,7 +124,7 @@ export function TransportBar({ onPlay, onStop, onRecord }: TransportBarProps) {
       <div style={{ flex: 1 }} />
 
       <div style={{ display: 'flex', gap: '4px' }}>
-        <button onClick={handleStop} style={btnBase} title="Stop">
+        <button onClick={handleStop} style={btnBase} title="Stop (Space)">
           <svg width="10" height="10" viewBox="0 0 10 10">
             <rect x="1" y="1" width="8" height="8" fill="#ccc" />
           </svg>
@@ -128,7 +137,7 @@ export function TransportBar({ onPlay, onStop, onRecord }: TransportBarProps) {
             borderColor: isPlaying ? '#00ff00' : '#333',
             boxShadow: isPlaying ? '0 0 6px #00ff0044' : 'none',
           }}
-          title="Play"
+          title="Play (Space)"
         >
           <svg width="10" height="10" viewBox="0 0 10 10">
             <polygon points="1,0 10,5 1,10" fill={isPlaying ? '#00ff00' : '#ccc'} />
@@ -136,11 +145,12 @@ export function TransportBar({ onPlay, onStop, onRecord }: TransportBarProps) {
         </button>
         <button
           onClick={handleRecord}
+          className={isRecording ? 'blink-record' : ''}
           style={{
             ...btnBase,
             backgroundColor: isRecording ? '#2a0a0a' : '#1a1a1a',
             borderColor: isRecording ? '#ff0000' : '#333',
-            boxShadow: isRecording ? '0 0 6px #ff000044' : 'none',
+            boxShadow: isRecording ? '0 0 10px #ff0000' : 'none',
           }}
           title="Record"
         >

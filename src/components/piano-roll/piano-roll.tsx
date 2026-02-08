@@ -245,13 +245,17 @@ const PianoRoll = () => {
         }
 
         const isSelected = pianoRollView.selectedNoteIds.includes(note.id);
+        const opacity = 0.4 + (note.velocity / 127) * 0.6;
 
+        ctx.save();
+        ctx.globalAlpha = opacity;
         ctx.fillStyle = isSelected ? '#ffffff' : channelColor;
         
         const r = 3;
         ctx.beginPath();
         ctx.roundRect(Math.max(KEY_WIDTH, noteX), noteY, Math.max(1, noteW - (noteX < KEY_WIDTH ? KEY_WIDTH - noteX : 0)), noteH, r);
         ctx.fill();
+        ctx.restore();
 
         ctx.strokeStyle = isSelected ? '#ffcc00' : 'rgba(0,0,0,0.3)';
         ctx.lineWidth = isSelected ? 2 : 1;
