@@ -1,8 +1,10 @@
-# NES DAW
+# midi.ashref.tn
 
 A browser-based Digital Audio Workstation (DAW) for creating authentic NES (Nintendo Entertainment System) music with Mega Man-style sounds. Play, compose, and record chiptune music directly in your browser using Web Audio API synthesis.
 
-![NES DAW](https://img.shields.io/badge/NES-DAW-ff4a4a)
+Live at **[midi.ashref.tn](https://midi.ashref.tn)**
+
+![midi.ashref.tn](https://img.shields.io/badge/midi.ashref.tn-NES%20DAW-ff4a4a)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
@@ -53,8 +55,8 @@ A browser-based Digital Audio Workstation (DAW) for creating authentic NES (Nint
 
 ```bash
 # Clone the repository
-git clone https://github.com/Ashref-dev/nes-daw.git
-cd nes-daw
+git clone https://github.com/Ashref-dev/midi.ashref.tn.git
+cd midi.ashref.tn
 
 # Install dependencies
 bun install
@@ -214,7 +216,7 @@ The output will be in `.next/` for deployment to Vercel or other Next.js-compati
 
 ## Credits
 
-Created by [Ashref](https://github.com/Ashref-dev)
+Created by **[Ashref.Tn](https://ashref.tn)** | [GitHub](https://github.com/Ashref-dev)
 
 Inspired by the iconic soundtracks of:
 - Mega Man 1 (1987, Capcom)
@@ -227,4 +229,4 @@ MIT License - feel free to use, modify, and distribute.
 
 ---
 
-**Built with passion for retro gaming and chiptune music.**
+**Built with passion by Ashref.Tn**
