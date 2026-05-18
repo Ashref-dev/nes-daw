@@ -1,6 +1,6 @@
 {
-  "name": "Retrolia: Melancholic DAW",
-  "description": "A retro pixel-art styled music generator and DAW. Write music in a timeline or use AI to generate melancholic tracks and full songs. Supports MIDI import and export.",
+  "name": "NES DAW",
+  "description": "A browser-based NES-style digital audio workstation for composing retro chiptune music. Edit songs in a piano roll, import and export MIDI, and optionally use AI to generate tracks and full arrangements.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
