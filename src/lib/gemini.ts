@@ -1,7 +1,24 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { Project, Track, NoteEvent, InstrumentType } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const geminiApiKey = process.env.GEMINI_API_KEY;
+
+function getAiClient() {
+  if (!geminiApiKey) return null;
+  return new GoogleGenAI({ apiKey: geminiApiKey });
+}
+
+export function isGeminiAvailable() {
+  return Boolean(geminiApiKey);
+}
+
+function requireAiClient() {
+  const ai = getAiClient();
+  if (!ai) {
+    throw new Error('Gemini AI is unavailable because GEMINI_API_KEY is not set.');
+  }
+  return ai;
+}
 
 const noteSchema: Schema = {
   type: Type.OBJECT,
@@ -52,7 +69,7 @@ ${MUSICAL_RULES}
 
 Ensure notes stay within range C2-C6 and strictly respect duration bounds (startStep < ${totalSteps}). Make sure to utilize multiple tracks for harmony (arps, bass, lead, pads).`;
 
-  const response = await ai.models.generateContent({
+  const response = await requireAiClient().models.generateContent({
     model: 'gemini-2.5-flash',
     contents: fullPrompt,
     config: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.85 }
@@ -122,7 +139,7 @@ Output EXACTLY ${context.tracks.length} tracks in the exact same order. ONLY inc
     required: ['tracks']
   };
 
-  const response = await ai.models.generateContent({
+  const response = await requireAiClient().models.generateContent({
     model: 'gemini-2.5-flash',
     contents: fullPrompt,
     config: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.85 }
@@ -167,7 +184,7 @@ Existing Tracks: ${contextStr}
 User Request: ${prompt}
 ${MUSICAL_RULES} Make sure it harmonizes and adds emotion.`;
 
-  const response = await ai.models.generateContent({
+  const response = await requireAiClient().models.generateContent({
     model: 'gemini-2.5-flash',
     contents: fullPrompt,
     config: { responseMimeType: 'application/json', responseSchema: trackSchema, temperature: 0.85 }
