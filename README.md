@@ -1,20 +1,27 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# daw.ashref.tn
 
-# Run and deploy your AI Studio app
+Browser-based DAW for arranging, generating, importing, and exporting MIDI.
 
-This contains everything you need to run your app locally.
+## Production URL
 
-View your app in AI Studio: https://ai.studio/apps/95aa80a5-0161-4561-ae53-ecd17831c432
+https://daw.ashref.tn
 
-## Run Locally
+## Development
 
-**Prerequisites:**  Node.js
-
+Prerequisite: Bun.
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   `bun install`
+2. Copy the environment file:
+   `cp .env.example .env.local`
+3. Set `GEMINI_API_KEY` in `.env.local` if you want AI generation features.
+4. Start the app:
+   `bun run dev`
+
+## Commands
+
+- `bun run dev` - start the Vite dev server
+- `bun run dev:portless` - start the app through Portless
+- `bun run format` - format the project with Prettier
+- `bun run lint` - run ESLint and TypeScript checks
+- `bun run build` - create a production build
