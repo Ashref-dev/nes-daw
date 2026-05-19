@@ -48,3 +48,22 @@ export interface ProjectBackup {
   timestamp: number;
   project: Project;
 }
+
+export type EditorView = "timeline" | "pianoRoll";
+
+export type KeyboardLayout = "qwerty" | "azerty";
+
+export type DAWActionId =
+  | "transport.togglePlayback"
+  | "transport.stopPlayback"
+  | "view.toggleEditor"
+  | "view.showTimeline"
+  | "view.showPianoRoll"
+  | "record.toggleKeyboard";
+
+export interface DAWAction {
+  id: DAWActionId;
+  label: string;
+  shortcut: string;
+  run: () => void | Promise<void>;
+}
