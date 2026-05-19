@@ -1,12 +1,16 @@
 import { useEffect } from "react";
 import { DAWAction } from "../types";
 import { findActionByShortcut } from "../lib/actions";
-import { isEditableTarget } from "../lib/keyboardPiano";
+import { isEditableTarget, isTextCompositionEvent } from "../lib/keyboardPiano";
 
 export function useGlobalActions(actions: DAWAction[]) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || isEditableTarget(event.target)) {
+      if (
+        event.repeat ||
+        isEditableTarget(event.target) ||
+        isTextCompositionEvent(event)
+      ) {
         return;
       }
 

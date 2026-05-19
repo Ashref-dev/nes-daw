@@ -1,7 +1,11 @@
 import { useEffect, useRef } from "react";
 import { KeyboardLayout, Project, Track } from "../types";
 import { AudioManager } from "../lib/audio";
-import { getKeyboardPianoNote, isEditableTarget } from "../lib/keyboardPiano";
+import {
+  getKeyboardPianoNote,
+  isEditableTarget,
+  isTextCompositionEvent,
+} from "../lib/keyboardPiano";
 
 interface ActiveKeyboardNote {
   note: string;
@@ -40,7 +44,12 @@ export function useComputerKeyboardPiano({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || isEditableTarget(event.target) || !activeTrack) {
+      if (
+        event.repeat ||
+        isEditableTarget(event.target) ||
+        isTextCompositionEvent(event) ||
+        !activeTrack
+      ) {
         return;
       }
 
@@ -90,12 +99,14 @@ export function useComputerKeyboardPiano({
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("blur", stopAllNotes);
+    document.addEventListener("visibilitychange", stopAllNotes);
 
     return () => {
       stopAllNotes();
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", stopAllNotes);
+      document.removeEventListener("visibilitychange", stopAllNotes);
     };
   }, [
     activeTrack,

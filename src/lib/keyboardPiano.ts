@@ -93,3 +93,11 @@ export function isEditableTarget(target: EventTarget | null) {
     target.isContentEditable
   );
 }
+
+export function isTextCompositionEvent(event: KeyboardEvent) {
+  return (
+    event.isComposing ||
+    event.key === "Dead" ||
+    event.key === "Process"
+  );
+}
