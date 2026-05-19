@@ -37,6 +37,7 @@ export function useDAW() {
   const LOCAL_PROJECTS_KEY = "daw_ashref_tn_local_projects";
   const BACKUPS_KEY = "daw_ashref_tn_backups";
   const KEYBOARD_LAYOUT_KEY = "daw_ashref_tn_keyboard_layout";
+  const KEYBOARD_MODE_KEY = "daw_ashref_tn_keyboard_mode";
 
   const [project, setProject] = useState<Project>(() => {
     try {
@@ -67,6 +68,12 @@ export function useDAW() {
     const saved = localStorage.getItem(KEYBOARD_LAYOUT_KEY);
     return saved === "azerty" ? "azerty" : "qwerty";
   });
+  const [keyboardMode, setKeyboardModeState] = useState<"hotkeys" | "piano">(
+    () => {
+      const saved = localStorage.getItem(KEYBOARD_MODE_KEY);
+      return saved === "piano" ? "piano" : "hotkeys";
+    },
+  );
   const [isKeyboardRecording, setIsKeyboardRecording] = useState(false);
 
   // Sync to AudioManager whenever project structure affecting sound changes
@@ -265,6 +272,11 @@ export function useDAW() {
     localStorage.setItem(KEYBOARD_LAYOUT_KEY, layout);
   };
 
+  const setKeyboardMode = (mode: "hotkeys" | "piano") => {
+    setKeyboardModeState(mode);
+    localStorage.setItem(KEYBOARD_MODE_KEY, mode);
+  };
+
   const seek = (step: number) => {
     AudioManager.seek(step);
   };
@@ -437,6 +449,8 @@ export function useDAW() {
     toggleEditorView,
     keyboardLayout,
     setKeyboardLayout,
+    keyboardMode,
+    setKeyboardMode,
     isKeyboardRecording,
     toggleKeyboardRecording,
     togglePlayback,

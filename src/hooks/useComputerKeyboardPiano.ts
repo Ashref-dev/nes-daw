@@ -18,6 +18,7 @@ interface UseComputerKeyboardPianoOptions {
   activeTrack: Track | undefined;
   isPlaying: boolean;
   isKeyboardRecording: boolean;
+  enabled: boolean;
   addRecordedNote: (
     note: string,
     startStep: number,
@@ -31,6 +32,7 @@ export function useComputerKeyboardPiano({
   activeTrack,
   isPlaying,
   isKeyboardRecording,
+  enabled,
   addRecordedNote,
 }: UseComputerKeyboardPianoOptions) {
   const activeNotesRef = useRef<Map<string, ActiveKeyboardNote>>(new Map());
@@ -45,6 +47,7 @@ export function useComputerKeyboardPiano({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
+        !enabled ||
         event.repeat ||
         isEditableTarget(event.target) ||
         isTextCompositionEvent(event) ||
@@ -111,6 +114,7 @@ export function useComputerKeyboardPiano({
   }, [
     activeTrack,
     addRecordedNote,
+    enabled,
     isKeyboardRecording,
     isPlaying,
     keyboardLayout,

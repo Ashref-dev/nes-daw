@@ -3,9 +3,13 @@ import { DAWAction } from "../types";
 import { findActionByShortcut } from "../lib/actions";
 import { isEditableTarget, isTextCompositionEvent } from "../lib/keyboardPiano";
 
-export function useGlobalActions(actions: DAWAction[]) {
+export function useGlobalActions(actions: DAWAction[], enabled: boolean) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (!enabled) {
+        return;
+      }
+
       if (
         event.repeat ||
         isEditableTarget(event.target) ||
@@ -25,5 +29,5 @@ export function useGlobalActions(actions: DAWAction[]) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [actions]);
+  }, [actions, enabled]);
 }

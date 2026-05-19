@@ -53,6 +53,15 @@ export type EditorView = "timeline" | "pianoRoll";
 
 export type KeyboardLayout = "qwerty" | "azerty";
 
+export type KeyboardMode = "hotkeys" | "piano";
+
+export type MidiInputState =
+  | "unsupported"
+  | "disabled"
+  | "requesting"
+  | "ready"
+  | "error";
+
 export type DAWActionId =
   | "transport.togglePlayback"
   | "transport.stopPlayback"
