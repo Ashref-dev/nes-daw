@@ -36,6 +36,7 @@ export function useDAW() {
   const AUTOSAVE_KEY = "daw_ashref_tn_autosave";
   const LOCAL_PROJECTS_KEY = "daw_ashref_tn_local_projects";
   const BACKUPS_KEY = "daw_ashref_tn_backups";
+  const KEYBOARD_LAYOUT_KEY = "daw_ashref_tn_keyboard_layout";
 
   const [project, setProject] = useState<Project>(() => {
     try {
@@ -57,6 +58,16 @@ export function useDAW() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [editorView, setEditorView] = useState<"timeline" | "pianoRoll">(
+    "timeline",
+  );
+  const [keyboardLayout, setKeyboardLayoutState] = useState<
+    "qwerty" | "azerty"
+  >(() => {
+    const saved = localStorage.getItem(KEYBOARD_LAYOUT_KEY);
+    return saved === "azerty" ? "azerty" : "qwerty";
+  });
+  const [isKeyboardRecording, setIsKeyboardRecording] = useState(false);
 
   // Sync to AudioManager whenever project structure affecting sound changes
   // and auto-save
@@ -239,6 +250,21 @@ export function useDAW() {
     setIsPlaying(false);
   };
 
+  const toggleKeyboardRecording = () => {
+    setIsKeyboardRecording((current) => !current);
+  };
+
+  const toggleEditorView = () => {
+    setEditorView((current) =>
+      current === "timeline" ? "pianoRoll" : "timeline",
+    );
+  };
+
+  const setKeyboardLayout = (layout: "qwerty" | "azerty") => {
+    setKeyboardLayoutState(layout);
+    localStorage.setItem(KEYBOARD_LAYOUT_KEY, layout);
+  };
+
   const seek = (step: number) => {
     AudioManager.seek(step);
   };
@@ -307,6 +333,20 @@ export function useDAW() {
         return t;
       }),
     }));
+  };
+
+  const addKeyboardRecordedNote = (
+    trackId: string,
+    note: string,
+    startStep: number,
+    durationSteps: number,
+  ) => {
+    addNote(trackId, {
+      note,
+      startStep: Math.max(0, Math.floor(startStep)),
+      durationSteps,
+      velocity: 0.85,
+    });
   };
 
   const toggleMute = (id: string) => {
@@ -392,6 +432,13 @@ export function useDAW() {
     isGenerating,
     autoScroll,
     setAutoScroll,
+    editorView,
+    setEditorView,
+    toggleEditorView,
+    keyboardLayout,
+    setKeyboardLayout,
+    isKeyboardRecording,
+    toggleKeyboardRecording,
     togglePlayback,
     stopPlayback,
     seek,
@@ -411,6 +458,7 @@ export function useDAW() {
     clearTrackNotes,
     updateTrack,
     addNote,
+    addKeyboardRecordedNote,
     toggleMute,
     toggleSolo,
     handleGenerateFullSong,

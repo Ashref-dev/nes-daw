@@ -56,6 +56,7 @@ function createPreviewSynth(instrument: InstrumentType) {
 export class AudioManager {
   private static synths: Record<string, Tone.PolySynth> = {};
   private static parts: Record<string, Tone.Part> = {};
+  private static previewSynths: Record<string, Tone.Synth> = {};
   private static masterReverb: Tone.Reverb;
   private static masterDelay: Tone.PingPongDelay;
   private static initialized = false;
@@ -105,6 +106,15 @@ export class AudioManager {
 
   static seek(step: number) {
     this.transport.position = `0:0:${step}`;
+  }
+
+  static getCurrentStep() {
+    const [bars = "0", beats = "0", sixteenths = "0"] = this.transport.position
+      .toString()
+      .split(":");
+    return (
+      parseFloat(bars) * 16 + parseFloat(beats) * 4 + parseFloat(sixteenths)
+    );
   }
 
   static syncProject(project: Project) {
@@ -209,5 +219,28 @@ export class AudioManager {
     synth.triggerAttackRelease(note, duration);
     // Cleanup afterwards
     setTimeout(() => synth.dispose(), 4000);
+  }
+
+  static startPreviewNote(
+    inputId: string,
+    note: string,
+    instrument: InstrumentType,
+  ) {
+    if (!this.initialized || this.previewSynths[inputId]) return;
+
+    const synth = createPreviewSynth(instrument);
+    synth.connect(Tone.getDestination());
+    synth.connect(this.masterReverb);
+    synth.triggerAttack(note);
+    this.previewSynths[inputId] = synth;
+  }
+
+  static stopPreviewNote(inputId: string) {
+    const synth = this.previewSynths[inputId];
+    if (!synth) return;
+
+    synth.triggerRelease();
+    window.setTimeout(() => synth.dispose(), 1000);
+    delete this.previewSynths[inputId];
   }
 }
