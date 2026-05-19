@@ -1,13 +1,102 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDAWContext } from "../context/useDAWContext";
 import { TopBar } from "./TopBar";
 import { Arrangement } from "./Arrangement";
 import { PianoRoll } from "./PianoRoll";
 import * as Tone from "tone";
+import { useGlobalActions } from "../hooks/useGlobalActions";
+import { useComputerKeyboardPiano } from "../hooks/useComputerKeyboardPiano";
+import { DAWAction } from "../types";
 
 export function Editor() {
-  const { isGenerating } = useDAWContext();
+  const {
+    project,
+    selectedTrackId,
+    isGenerating,
+    isPlaying,
+    editorView,
+    setEditorView,
+    toggleEditorView,
+    keyboardLayout,
+    isKeyboardRecording,
+    togglePlayback,
+    stopPlayback,
+    toggleKeyboardRecording,
+    addKeyboardRecordedNote,
+  } = useDAWContext();
   const [playheadStep, setPlayheadStep] = useState(-1);
+  const activeTrack = project.tracks.find(
+    (track) => track.id === selectedTrackId,
+  );
+
+  const addRecordedNote = useCallback(
+    (note: string, startStep: number, durationSteps: number) => {
+      if (!activeTrack) {
+        return;
+      }
+
+      addKeyboardRecordedNote(activeTrack.id, note, startStep, durationSteps);
+    },
+    [activeTrack, addKeyboardRecordedNote],
+  );
+
+  const actions = useMemo<DAWAction[]>(
+    () => [
+      {
+        id: "transport.togglePlayback",
+        label: "Play / pause",
+        shortcut: " ",
+        run: togglePlayback,
+      },
+      {
+        id: "transport.stopPlayback",
+        label: "Stop",
+        shortcut: "Escape",
+        run: stopPlayback,
+      },
+      {
+        id: "view.toggleEditor",
+        label: "Switch timeline / piano roll",
+        shortcut: "Tab",
+        run: toggleEditorView,
+      },
+      {
+        id: "view.showTimeline",
+        label: "Show timeline",
+        shortcut: "F6",
+        run: () => setEditorView("timeline"),
+      },
+      {
+        id: "view.showPianoRoll",
+        label: "Show piano roll",
+        shortcut: "F7",
+        run: () => setEditorView("pianoRoll"),
+      },
+      {
+        id: "record.toggleKeyboard",
+        label: "Arm keyboard record",
+        shortcut: "F9",
+        run: toggleKeyboardRecording,
+      },
+    ],
+    [
+      setEditorView,
+      stopPlayback,
+      toggleEditorView,
+      toggleKeyboardRecording,
+      togglePlayback,
+    ],
+  );
+
+  useGlobalActions(actions);
+  useComputerKeyboardPiano({
+    keyboardLayout,
+    project,
+    activeTrack,
+    isPlaying,
+    isKeyboardRecording,
+    addRecordedNote,
+  });
 
   useEffect(() => {
     let frameId: number;
@@ -32,19 +121,38 @@ export function Editor() {
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-[#D1CEC1] font-sans text-[#4E4A42] uppercase">
-      <TopBar />
+      <TopBar actions={actions} />
 
-      {/* Resizable split between arrangement and piano roll */}
-      <div className="flex flex-1 flex-col gap-6 overflow-hidden p-6 pb-0">
-        {/* Arrangement View (Top) */}
-        <div className="flex h-1/2 min-h-64 flex-none border border-[#4E4A42] bg-[#C4C1B3] shadow-inner">
-          <Arrangement playheadStep={playheadStep} />
+      <div className="flex flex-1 flex-col gap-4 overflow-hidden p-6 pb-0">
+        <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEditorView("timeline")}
+              className={`border border-[#4E4A42] px-3 py-1 transition-colors ${editorView === "timeline" ? "bg-[#4E4A42] text-[#D1CEC1]" : "hover:bg-[#4E4A42] hover:text-[#D1CEC1]"}`}
+            >
+              Timeline
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditorView("pianoRoll")}
+              className={`border border-[#4E4A42] px-3 py-1 transition-colors ${editorView === "pianoRoll" ? "bg-[#4E4A42] text-[#D1CEC1]" : "hover:bg-[#4E4A42] hover:text-[#D1CEC1]"}`}
+            >
+              Piano Roll
+            </button>
+          </div>
+          <span className="opacity-60">Tab switches views · Space plays</span>
         </div>
 
-        {/* Piano Roll (Bottom) */}
-        <div className="relative mb-6 flex flex-1 overflow-hidden border border-[#4E4A42] bg-[#D1CEC1] shadow-inner">
-          <PianoRoll playheadStep={playheadStep} />
-        </div>
+        {editorView === "timeline" ? (
+          <div className="flex min-h-0 flex-1 border border-[#4E4A42] bg-[#C4C1B3] shadow-inner">
+            <Arrangement playheadStep={playheadStep} />
+          </div>
+        ) : (
+          <div className="relative mb-6 flex min-h-0 flex-1 overflow-hidden border border-[#4E4A42] bg-[#D1CEC1] shadow-inner">
+            <PianoRoll playheadStep={playheadStep} />
+          </div>
+        )}
       </div>
 
       {isGenerating && (

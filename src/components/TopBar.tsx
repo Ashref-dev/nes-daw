@@ -10,9 +10,11 @@ import {
   X,
   Search,
   Trash2,
+  Settings,
 } from "lucide-react";
+import { DAWAction } from "../types";
 
-export function TopBar() {
+export function TopBar({ actions }: { actions: DAWAction[] }) {
   const {
     project,
     isPlaying,
@@ -35,12 +37,18 @@ export function TopBar() {
     restoreBackup,
     autoScroll,
     setAutoScroll,
+    keyboardLayout,
+    setKeyboardLayout,
+    isKeyboardRecording,
+    toggleKeyboardRecording,
+    selectedTrackId,
   } = useDAWContext();
   const [prompt, setPrompt] = useState(
     "A melancholic chiptune song in the style of NieR Automata",
   );
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [backupsOpen, setBackupsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [saveName, setSaveName] = useState(project.name || "Untitled Project");
@@ -54,6 +62,9 @@ export function TopBar() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const backups = getBackups();
+  const activeTrack = project.tracks.find(
+    (track) => track.id === selectedTrackId,
+  );
   const filteredLocalProjects = localProjectsData
     .filter((projectItem) =>
       (projectItem.name || "Untitled")
@@ -240,6 +251,14 @@ export function TopBar() {
         >
           Snap
         </button>
+        <button
+          type="button"
+          onClick={toggleKeyboardRecording}
+          className={`border border-[#4E4A42] px-3 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${isKeyboardRecording ? "bg-[#C13A3A] text-[#D1CEC1]" : "bg-transparent hover:bg-[#4E4A42] hover:text-[#D1CEC1]"}`}
+          title="Arm keyboard recording while the transport plays"
+        >
+          Rec Keys
+        </button>
       </div>
 
       {/* Tempo & Info */}
@@ -279,6 +298,80 @@ export function TopBar() {
               +
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 text-[10px] font-bold tracking-widest uppercase">
+        <div className="flex flex-col items-end">
+          <span className="opacity-50">Keyboard</span>
+          <span>{keyboardLayout}</span>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="opacity-50">Playing</span>
+          <span>{activeTrack ? activeTrack.instrument : "No Track"}</span>
+        </div>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            className="flex h-8 w-8 items-center justify-center border border-[#4E4A42] transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+            title="Keyboard and action settings"
+          >
+            <Settings size={14} />
+          </button>
+          {settingsOpen && (
+            <div className="absolute top-full right-0 z-50 mt-2 flex w-80 flex-col gap-4 border border-[#4E4A42] bg-[#D1CEC1] p-4 text-[#4E4A42] shadow-xl">
+              <div className="flex items-center justify-between border-b border-[#4E4A42]/30 pb-2">
+                <span className="text-[11px] font-bold tracking-widest uppercase">
+                  Keyboard Input
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(false)}
+                  className="hover:opacity-50"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <label
+                htmlFor="keyboard-layout-select"
+                className="flex flex-col gap-1 text-[10px] font-bold tracking-widest uppercase"
+              >
+                Layout
+                <select
+                  id="keyboard-layout-select"
+                  value={keyboardLayout}
+                  onChange={(event) =>
+                    setKeyboardLayout(event.target.value as "qwerty" | "azerty")
+                  }
+                  className="border border-[#4E4A42] bg-transparent px-2 py-2 font-bold text-[#4E4A42] outline-none"
+                >
+                  <option value="qwerty">QWERTY</option>
+                  <option value="azerty">AZERTY</option>
+                </select>
+              </label>
+
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-bold tracking-widest uppercase opacity-60">
+                  Actions
+                </span>
+                {actions.map((action) => (
+                  <button
+                    type="button"
+                    key={action.id}
+                    onClick={() => void action.run()}
+                    className="flex items-center justify-between border border-[#4E4A42]/40 px-2 py-1 text-left transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+                  >
+                    <span>{action.label}</span>
+                    <kbd className="border border-current px-1 py-0.5 font-mono text-[9px]">
+                      {action.shortcut === " " ? "Space" : action.shortcut}
+                    </kbd>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
