@@ -1,24 +1,59 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Project, Track, NoteEvent, InstrumentType } from '../types';
-import { INITIAL_PROJECT } from '../constants';
-import { AudioManager } from '../lib/audio';
-import { generateFullSong, generateTrack, generateSongExtension } from '../lib/gemini';
-import { importMidi, exportMidi } from '../lib/midi';
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import {
+  NoteEvent,
+  Project,
+  ProjectBackup,
+  SavedProject,
+  Track,
+} from "../types";
+import { INITIAL_PROJECT } from "../constants";
+import { AudioManager } from "../lib/audio";
+import {
+  generateFullSong,
+  generateTrack,
+  generateSongExtension,
+} from "../lib/gemini";
+import { importMidi, exportMidi } from "../lib/midi";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isProject = (value: unknown): value is Project =>
+  isRecord(value) &&
+  typeof value.tempo === "number" &&
+  typeof value.totalSteps === "number" &&
+  Array.isArray(value.tracks);
+
+const isSavedProject = (value: unknown): value is SavedProject =>
+  isRecord(value) && typeof value["updatedAt"] === "number" && isProject(value);
+
+const isProjectBackup = (value: unknown): value is ProjectBackup =>
+  isRecord(value) &&
+  typeof value.timestamp === "number" &&
+  isProject(value.project);
 
 export function useDAW() {
-  const AUTOSAVE_KEY = 'retrolia_autosave';
-  const MANUAL_SAVE_KEY = 'retrolia_user_save';
-  const BACKUPS_KEY = 'retrolia_backups';
+  const AUTOSAVE_KEY = "daw_ashref_tn_autosave";
+  const LOCAL_PROJECTS_KEY = "daw_ashref_tn_local_projects";
+  const BACKUPS_KEY = "daw_ashref_tn_backups";
 
   const [project, setProject] = useState<Project>(() => {
     try {
       const saved = localStorage.getItem(AUTOSAVE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return INITIAL_PROJECT;
+      if (!saved) {
+        return INITIAL_PROJECT;
+      }
+
+      const parsed = JSON.parse(saved) as unknown;
+      return isProject(parsed) ? parsed : INITIAL_PROJECT;
+    } catch {
+      return INITIAL_PROJECT;
+    }
   });
-  
-  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(project.tracks[0]?.id || null);
+
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(
+    project.tracks[0]?.id || null,
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -35,66 +70,76 @@ export function useDAW() {
     const BACKUP_INTERVAL = 10 * 60 * 1000;
     const interval = setInterval(() => {
       try {
-        const backupsStr = localStorage.getItem(BACKUPS_KEY) || '[]';
-        let backups: any[] = JSON.parse(backupsStr);
-        if (!Array.isArray(backups)) backups = [];
-        
+        const backupsStr = localStorage.getItem(BACKUPS_KEY) || "[]";
+        const parsedBackups = JSON.parse(backupsStr) as unknown;
+        let backups = Array.isArray(parsedBackups)
+          ? parsedBackups.filter(isProjectBackup)
+          : [];
+
         backups.push({
           timestamp: Date.now(),
-          project: project
+          project: project,
         });
-        
+
         // Keep up to 10 backups
         if (backups.length > 10) {
           backups = backups.slice(backups.length - 10);
         }
-        
+
         localStorage.setItem(BACKUPS_KEY, JSON.stringify(backups));
       } catch (e) {
-        console.error('Failed to create backup', e);
+        console.error("Failed to create backup", e);
       }
     }, BACKUP_INTERVAL);
-    
+
     return () => clearInterval(interval);
   }, [project]);
 
   const saveManual = (name: string) => {
     try {
-      const LOCAL_KEY = 'retrolia_local_projects';
-      const existingStr = localStorage.getItem(LOCAL_KEY) || '[]';
-      let existing: any[] = JSON.parse(existingStr);
-      if (!Array.isArray(existing)) existing = [];
-      
-      const projectId = project.id || 'proj_' + Date.now();
-      const updatedProject = { ...project, id: projectId, name: name };
-      
-      const index = existing.findIndex((p: any) => p.id === projectId);
+      const existingStr = localStorage.getItem(LOCAL_PROJECTS_KEY) || "[]";
+      const parsedProjects = JSON.parse(existingStr) as unknown;
+      const existing = Array.isArray(parsedProjects)
+        ? parsedProjects.filter(isSavedProject)
+        : [];
+
+      const projectId = project.id || "proj_" + Date.now();
+      const updatedProject = { ...project, id: projectId, name };
+
+      const index = existing.findIndex(
+        (savedProject) => savedProject.id === projectId,
+      );
       if (index >= 0) {
         existing[index] = { ...updatedProject, updatedAt: Date.now() };
       } else {
         existing.push({ ...updatedProject, updatedAt: Date.now() });
       }
-      
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(existing));
-      setProject(updatedProject); // Update current project with name/id
+
+      localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(existing));
+      setProject(updatedProject);
     } catch (e) {
       console.error(e);
-      alert('Failed to save project locally');
+      alert("Failed to save project locally");
     }
   };
 
-  const getLocalProjects = useCallback(() => {
+  const getLocalProjects = useCallback((): SavedProject[] => {
     try {
-      const LOCAL_KEY = 'retrolia_local_projects';
-      const existingStr = localStorage.getItem(LOCAL_KEY) || '[]';
-      return JSON.parse(existingStr);
-    } catch { return []; }
+      const existingStr = localStorage.getItem(LOCAL_PROJECTS_KEY) || "[]";
+      const parsedProjects = JSON.parse(existingStr) as unknown;
+
+      return Array.isArray(parsedProjects)
+        ? parsedProjects.filter(isSavedProject)
+        : [];
+    } catch {
+      return [];
+    }
   }, []);
 
   const loadLocalProject = (id: string) => {
     try {
       const projects = getLocalProjects();
-      const target = projects.find((p: any) => p.id === id);
+      const target = projects.find((savedProject) => savedProject.id === id);
       if (target) {
         stopPlayback();
         setProject(target);
@@ -107,10 +152,9 @@ export function useDAW() {
 
   const deleteLocalProject = (id: string) => {
     try {
-      const LOCAL_KEY = 'retrolia_local_projects';
       const projects = getLocalProjects();
-      const updated = projects.filter((p: any) => p.id !== id);
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(updated));
+      const updated = projects.filter((savedProject) => savedProject.id !== id);
+      localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(updated));
     } catch (e) {
       console.error(e);
     }
@@ -123,59 +167,71 @@ export function useDAW() {
     setSelectedTrackId(null);
   };
 
-  const getBackups = useCallback(() => {
+  const getBackups = useCallback((): ProjectBackup[] => {
     try {
-      const backupsStr = localStorage.getItem(BACKUPS_KEY) || '[]';
-      return JSON.parse(backupsStr);
-    } catch { return []; }
+      const backupsStr = localStorage.getItem(BACKUPS_KEY) || "[]";
+      const parsedBackups = JSON.parse(backupsStr) as unknown;
+
+      return Array.isArray(parsedBackups)
+        ? parsedBackups.filter(isProjectBackup)
+        : [];
+    } catch {
+      return [];
+    }
   }, []);
 
   const restoreBackup = (backupId: number) => {
     const backups = getBackups();
-    const target = backups.find((b: any) => b.timestamp === backupId);
+    const target = backups.find((backup) => backup.timestamp === backupId);
     if (target) {
-        stopPlayback();
-        setProject(target.project);
-        setSelectedTrackId(target.project.tracks[0]?.id || null);
+      stopPlayback();
+      setProject(target.project);
+      setSelectedTrackId(target.project.tracks[0]?.id || null);
     }
   };
 
   const saveToFile = () => {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project));
-      const el = document.createElement('a');
-      el.setAttribute("href", dataStr);
-      el.setAttribute("download", `retrolia_project_${Date.now()}.json`);
-      document.body.appendChild(el);
-      el.click();
-      el.remove();
+    const dataStr =
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(project));
+    const el = document.createElement("a");
+    el.setAttribute("href", dataStr);
+    el.setAttribute("download", `daw-ashref-tn-project-${Date.now()}.json`);
+    document.body.appendChild(el);
+    el.click();
+    el.remove();
   };
 
-  const loadFromFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-          try {
-              const res = e.target?.result as string;
-              if (res) {
-                  const proj = JSON.parse(res);
-                  if (proj && proj.tracks) {
-                      stopPlayback();
-                      setProject(proj);
-                      setSelectedTrackId(proj.tracks[0]?.id || null);
-                  }
-              }
-          } catch(err) { alert('Invalid project file'); }
-      };
-      reader.readAsText(file);
-      event.target.value = '';
+  const loadFromFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      try {
+        const result = readerEvent.target?.result;
+        if (typeof result !== "string") {
+          return;
+        }
+
+        const parsedProject = JSON.parse(result) as unknown;
+        if (isProject(parsedProject)) {
+          stopPlayback();
+          setProject(parsedProject);
+          setSelectedTrackId(parsedProject.tracks[0]?.id || null);
+        }
+      } catch {
+        alert("Invalid project file");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
   };
 
   const togglePlayback = async () => {
     await AudioManager.init(project);
     const state = AudioManager.togglePlayback();
-    setIsPlaying(state === 'started');
+    setIsPlaying(state === "started");
   };
 
   const stopPlayback = () => {
@@ -188,77 +244,83 @@ export function useDAW() {
   };
 
   const setTempo = (tempo: number) => {
-    setProject(p => ({ ...p, tempo }));
+    setProject((p) => ({ ...p, tempo }));
     AudioManager.setTempo(tempo);
   };
 
   const setTotalSteps = (steps: number) => {
-    setProject(p => ({ ...p, totalSteps: Math.max(16, steps) }));
+    setProject((p) => ({ ...p, totalSteps: Math.max(16, steps) }));
   };
 
   const addTrack = () => {
     const newTrack: Track = {
-      id: 'trk_new_' + Date.now(),
-      name: 'New Track',
-      instrument: 'square',
-      color: '#4E4A42', // Editorial theme default color
+      id: "trk_new_" + Date.now(),
+      name: "New Track",
+      instrument: "square",
+      color: "#4E4A42", // Editorial theme default color
       muted: false,
       solo: false,
       volume: -6,
-      notes: []
+      notes: [],
     };
-    setProject(p => ({ ...p, tracks: [...p.tracks, newTrack] }));
+    setProject((p) => ({ ...p, tracks: [...p.tracks, newTrack] }));
     setSelectedTrackId(newTrack.id);
   };
 
   const deleteTrack = (id: string) => {
-    setProject(p => {
-      const remaining = p.tracks.filter(t => t.id !== id);
+    setProject((p) => {
+      const remaining = p.tracks.filter((t) => t.id !== id);
       if (selectedTrackId === id) {
         setSelectedTrackId(remaining.length > 0 ? remaining[0].id : null);
       }
       return { ...p, tracks: remaining };
     });
   };
-  
+
   const clearTrackNotes = (id: string) => {
-    setProject(p => ({
+    setProject((p) => ({
       ...p,
-      tracks: p.tracks.map(t => t.id === id ? { ...t, notes: [] } : t)
+      tracks: p.tracks.map((t) => (t.id === id ? { ...t, notes: [] } : t)),
     }));
   };
 
   const updateTrack = (id: string, updates: Partial<Track>) => {
-    setProject(p => ({
+    setProject((p) => ({
       ...p,
-      tracks: p.tracks.map(t => t.id === id ? { ...t, ...updates } : t)
+      tracks: p.tracks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     }));
   };
 
-  const addNote = (trackId: string, note: Omit<NoteEvent, 'id'>) => {
-    setProject(p => ({
+  const addNote = (trackId: string, note: Omit<NoteEvent, "id">) => {
+    setProject((p) => ({
       ...p,
-      tracks: p.tracks.map(t => {
+      tracks: p.tracks.map((t) => {
         if (t.id === trackId) {
           return {
             ...t,
-            notes: [...t.notes, { ...note, id: 'n_' + Date.now() + Math.random() }]
+            notes: [
+              ...t.notes,
+              { ...note, id: "n_" + Date.now() + Math.random() },
+            ],
           };
         }
         return t;
-      })
+      }),
     }));
   };
 
   const toggleMute = (id: string) => {
-    updateTrack(id, { muted: !project.tracks.find(t => t.id === id)?.muted });
+    updateTrack(id, { muted: !project.tracks.find((t) => t.id === id)?.muted });
   };
 
   const toggleSolo = (id: string) => {
-    updateTrack(id, { solo: !project.tracks.find(t => t.id === id)?.solo });
+    updateTrack(id, { solo: !project.tracks.find((t) => t.id === id)?.solo });
   };
 
-  const handleGenerateFullSong = async (prompt: string, steps: number = 384) => {
+  const handleGenerateFullSong = async (
+    prompt: string,
+    steps: number = 384,
+  ) => {
     try {
       setIsGenerating(true);
       stopPlayback();
@@ -267,7 +329,7 @@ export function useDAW() {
       if (newProj.tracks.length > 0) setSelectedTrackId(newProj.tracks[0].id);
     } catch (e) {
       console.error(e);
-      alert('Failed to generate full song. See console.');
+      alert("Failed to generate full song. See console.");
     } finally {
       setIsGenerating(false);
     }
@@ -280,9 +342,9 @@ export function useDAW() {
       const addedSteps = numBars * 16;
       const newProj = await generateSongExtension(prompt, project, addedSteps);
       setProject(newProj);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
-      alert('Failed to extend song.');
+      alert("Failed to extend song.");
     } finally {
       setIsGenerating(false);
     }
@@ -292,11 +354,11 @@ export function useDAW() {
     try {
       setIsGenerating(true);
       const newTrack = await generateTrack(prompt, project.totalSteps, project);
-      setProject(p => ({ ...p, tracks: [...p.tracks, newTrack] }));
+      setProject((p) => ({ ...p, tracks: [...p.tracks, newTrack] }));
       setSelectedTrackId(newTrack.id);
     } catch (e) {
       console.error(e);
-      alert('Failed to generate track.');
+      alert("Failed to generate track.");
     } finally {
       setIsGenerating(false);
     }
@@ -306,19 +368,19 @@ export function useDAW() {
     exportMidi(project);
   };
 
-  const handleImport = async (e: any) => {
-    const file = e.target.files?.[0];
+  const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
     try {
       stopPlayback();
       const proj = await importMidi(file);
       setProject(proj);
       setSelectedTrackId(proj.tracks[0]?.id || null);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to import MIDI');
+    } catch (error) {
+      console.error(error);
+      alert("Failed to import MIDI");
     }
-    e.target.value = ''; // clear input
+    event.target.value = "";
   };
 
   return {
@@ -355,6 +417,6 @@ export function useDAW() {
     handleExtendSong,
     handleGenerateTrack,
     handleExport,
-    handleImport
+    handleImport,
   };
 }

@@ -1,6 +1,5 @@
-import React from 'react';
-import { DAWProvider } from './context/DAWContext';
-import { Editor } from './components/Editor';
+import { DAWProvider } from "./context/DAWContext";
+import { Editor } from "./components/Editor";
 
 export default function App() {
   return (
@@ -9,4 +8,3 @@ export default function App() {
     </DAWProvider>
   );
 }
-

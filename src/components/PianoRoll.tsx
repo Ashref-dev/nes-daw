@@ -1,14 +1,18 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { useDAWContext } from '../context/DAWContext';
-import { PIANO_ROLL_NOTES, CELL_WIDTH_PX, ROW_HEIGHT_PX } from '../constants';
-import { AudioManager } from '../lib/audio';
+import { useEffect, useRef, useState } from "react";
+import { useDAWContext } from "../context/useDAWContext";
+import { PIANO_ROLL_NOTES, CELL_WIDTH_PX, ROW_HEIGHT_PX } from "../constants";
+import { AudioManager } from "../lib/audio";
+
+const GRID_ROWS = Array.from({ length: 12 }, (_, row) => row);
+const GRID_COLUMNS = Array.from({ length: 4 }, (_, column) => column);
 
 export function PianoRoll({ playheadStep }: { playheadStep: number }) {
-  const { project, selectedTrackId, setProject, isPlaying, autoScroll } = useDAWContext();
-  const activeTrack = project.tracks.find(t => t.id === selectedTrackId);
+  const { project, selectedTrackId, setProject, isPlaying, autoScroll } =
+    useDAWContext();
+  const activeTrack = project.tracks.find((t) => t.id === selectedTrackId);
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  const [stampDuration, setStampDuration] = useState(2); 
+
+  const [stampDuration, setStampDuration] = useState(2);
 
   useEffect(() => {
     if (isPlaying && autoScroll && containerRef.current && playheadStep >= 0) {
@@ -16,33 +20,39 @@ export function PianoRoll({ playheadStep }: { playheadStep: number }) {
       const playheadX = playheadStep * CELL_WIDTH_PX;
       const viewLeft = container.scrollLeft;
       const viewRight = viewLeft + container.clientWidth;
-      
+
       // Keep Keyboard Sidebar in mind, it is 64px width (w-16) or similar
       if (playheadX < viewLeft || playheadX > viewRight - 100) {
-        container.scrollTo({ left: Math.max(0, playheadX - 64), behavior: 'auto' });
+        container.scrollTo({
+          left: Math.max(0, playheadX - 64),
+          behavior: "auto",
+        });
       }
     }
   }, [playheadStep, isPlaying, autoScroll]);
 
   const handleCellClick = (noteStr: string, step: number) => {
     if (!activeTrack) return;
-    
+
     const existingIndex = activeTrack.notes.findIndex(
-      n => n.note === noteStr && step >= n.startStep && step < n.startStep + n.durationSteps
+      (n) =>
+        n.note === noteStr &&
+        step >= n.startStep &&
+        step < n.startStep + n.durationSteps,
     );
 
     if (existingIndex >= 0) {
-      setProject(p => {
+      setProject((p) => {
         return {
           ...p,
-          tracks: p.tracks.map(t => {
+          tracks: p.tracks.map((t) => {
             if (t.id === activeTrack.id) {
               const newNotes = [...t.notes];
               newNotes.splice(existingIndex, 1);
               return { ...t, notes: newNotes };
             }
             return t;
-          })
+          }),
         };
       });
     } else {
@@ -50,49 +60,55 @@ export function PianoRoll({ playheadStep }: { playheadStep: number }) {
         AudioManager.previewNote(noteStr, activeTrack.instrument);
       }
 
-      setProject(p => ({
+      setProject((p) => ({
         ...p,
-        tracks: p.tracks.map(t => {
+        tracks: p.tracks.map((t) => {
           if (t.id === activeTrack.id) {
             return {
               ...t,
-              notes: [...t.notes, {
-                id: 'n_' + Date.now() + Math.random(),
-                note: noteStr,
-                startStep: step,
-                durationSteps: stampDuration,
-                velocity: 0.8
-              }]
+              notes: [
+                ...t.notes,
+                {
+                  id: "n_" + Date.now() + Math.random(),
+                  note: noteStr,
+                  startStep: step,
+                  durationSteps: stampDuration,
+                  velocity: 0.8,
+                },
+              ],
             };
           }
           return t;
-        })
+        }),
       }));
     }
   };
 
   if (!activeTrack) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-[#4E4A42] font-bold tracking-[0.2em] uppercase opacity-50">
+      <div className="flex h-full flex-col items-center justify-center font-bold tracking-[0.2em] text-[#4E4A42] uppercase opacity-50">
         Select a track to edit
       </div>
     );
   }
 
   return (
-    <div className="flex h-full w-full bg-[#D1CEC1] flex-col relative text-[#4E4A42]">
+    <div className="relative flex h-full w-full flex-col bg-[#D1CEC1] text-[#4E4A42]">
       {/* Piano Roll Header */}
-      <div className="h-10 border-b border-[#4E4A42] bg-[#BAB5A1] flex items-center px-4 justify-between uppercase tracking-widest font-bold text-[10px]">
+      <div className="flex h-10 items-center justify-between border-b border-[#4E4A42] bg-[#BAB5A1] px-4 text-[10px] font-bold tracking-widest uppercase">
         <div className="flex items-center gap-3">
-          <div className="w-3 h-3 border border-[#4E4A42] bg-[#4E4A42] opacity-80" />
-          <span className="">{activeTrack.name} <span className="opacity-60 ml-2">({activeTrack.instrument})</span></span>
+          <div className="h-3 w-3 border border-[#4E4A42] bg-[#4E4A42] opacity-80" />
+          <span className="">
+            {activeTrack.name}{" "}
+            <span className="ml-2 opacity-60">({activeTrack.instrument})</span>
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="opacity-60">Draw Length:</span>
-          <select 
+          <select
             value={stampDuration}
             onChange={(e) => setStampDuration(parseInt(e.target.value))}
-            className="bg-transparent border border-[#4E4A42] text-[#4E4A42] px-2 py-1 outline-none font-bold"
+            className="border border-[#4E4A42] bg-transparent px-2 py-1 font-bold text-[#4E4A42] outline-none"
           >
             <option value={1}>1/16</option>
             <option value={2}>1/8</option>
@@ -102,43 +118,74 @@ export function PianoRoll({ playheadStep }: { playheadStep: number }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto relative flex" ref={containerRef}>
+      <div className="relative flex flex-1 overflow-auto" ref={containerRef}>
         {/* Keyboard sidebar */}
-        <div className="w-16 flex-none bg-[#D1CEC1] sticky left-0 z-40 border-r border-[#4E4A42]">
-          {PIANO_ROLL_NOTES.map(note => {
-            const isBlack = note.includes('b');
+        <div className="sticky left-0 z-40 w-16 flex-none border-r border-[#4E4A42] bg-[#D1CEC1]">
+          {PIANO_ROLL_NOTES.map((note) => {
+            const isBlack = note.includes("b");
             return (
-              <div 
+              <button
+                type="button"
                 key={note}
-                className={`flex items-center justify-end px-2 text-[10px] select-none border-b border-[#4E4A42] cursor-pointer hover:bg-[#4E4A42] hover:text-[#D1CEC1] font-bold tracking-widest ${isBlack ? 'bg-[#BAB5A1] bg-opacity-40 text-[#4E4A42]' : 'bg-[#D1CEC1] text-[#4E4A42]'}`}
+                className={`flex cursor-pointer items-center justify-end border-b border-[#4E4A42] px-2 text-[10px] font-bold tracking-widest select-none hover:bg-[#4E4A42] hover:text-[#D1CEC1] ${isBlack ? "bg-opacity-40 bg-[#BAB5A1] text-[#4E4A42]" : "bg-[#D1CEC1] text-[#4E4A42]"}`}
                 style={{ height: ROW_HEIGHT_PX }}
-                onMouseDown={() => AudioManager.previewNote(note, activeTrack.instrument)}
+                onMouseDown={() =>
+                  AudioManager.previewNote(note, activeTrack.instrument)
+                }
               >
                 {note}
-              </div>
+              </button>
             );
           })}
         </div>
 
         {/* Grid Area */}
-        <div 
-          className="relative bg-transparent cursor-crosshair"
-          style={{ 
+        <div
+          className="relative cursor-crosshair bg-transparent"
+          style={{
             width: project.totalSteps * CELL_WIDTH_PX,
-            height: PIANO_ROLL_NOTES.length * ROW_HEIGHT_PX
+            height: PIANO_ROLL_NOTES.length * ROW_HEIGHT_PX,
           }}
         >
           {/* Background SVG Grid for performance */}
-          <svg className="absolute inset-0 pointer-events-none opacity-20 mix-blend-multiply" width={project.totalSteps * CELL_WIDTH_PX} height={PIANO_ROLL_NOTES.length * ROW_HEIGHT_PX}>
+          <svg
+            aria-hidden="true"
+            focusable="false"
+            className="pointer-events-none absolute inset-0 opacity-20 mix-blend-multiply"
+            width={project.totalSteps * CELL_WIDTH_PX}
+            height={PIANO_ROLL_NOTES.length * ROW_HEIGHT_PX}
+          >
             <defs>
-              <pattern id="gridPattern" width={CELL_WIDTH_PX * 4} height={ROW_HEIGHT_PX * 12} patternUnits="userSpaceOnUse">
+              <pattern
+                id="gridPattern"
+                width={CELL_WIDTH_PX * 4}
+                height={ROW_HEIGHT_PX * 12}
+                patternUnits="userSpaceOnUse"
+              >
                 {/* Rows lines */}
-                {Array.from({ length: 12 }).map((_, i) => (
-                   <line key={`h${i}`} x1="0" y1={i * ROW_HEIGHT_PX} x2={CELL_WIDTH_PX * 4} y2={i * ROW_HEIGHT_PX} stroke="#4E4A42" strokeWidth="1" />
+                {GRID_ROWS.map((row) => (
+                  <line
+                    key={`horizontal-grid-${row}`}
+                    x1="0"
+                    y1={row * ROW_HEIGHT_PX}
+                    x2={CELL_WIDTH_PX * 4}
+                    y2={row * ROW_HEIGHT_PX}
+                    stroke="#4E4A42"
+                    strokeWidth="1"
+                  />
                 ))}
                 {/* 16th cols */}
-                {Array.from({ length: 4 }).map((_, i) => (
-                   <line key={`v${i}`} x1={i * CELL_WIDTH_PX} y1="0" x2={i * CELL_WIDTH_PX} y2={ROW_HEIGHT_PX * 12} stroke="#4E4A42" strokeWidth={i === 0 ? "2" : "1"} opacity={i === 0 ? "1" : "0.5"} />
+                {GRID_COLUMNS.map((column) => (
+                  <line
+                    key={`vertical-grid-${column}`}
+                    x1={column * CELL_WIDTH_PX}
+                    y1="0"
+                    x2={column * CELL_WIDTH_PX}
+                    y2={ROW_HEIGHT_PX * 12}
+                    stroke="#4E4A42"
+                    strokeWidth={column === 0 ? "2" : "1"}
+                    opacity={column === 0 ? "1" : "0.5"}
+                  />
                 ))}
               </pattern>
             </defs>
@@ -146,25 +193,30 @@ export function PianoRoll({ playheadStep }: { playheadStep: number }) {
           </svg>
 
           {/* Interactive clickable overlay */}
-          <div className="absolute inset-0 z-10" onMouseDown={(e) => {
-             const rect = e.currentTarget.getBoundingClientRect();
-             const x = e.clientX - rect.left;
-             const y = e.clientY - rect.top;
-             const step = Math.floor(x / CELL_WIDTH_PX);
-             const row = Math.floor(y / ROW_HEIGHT_PX);
-             if (row >= 0 && row < PIANO_ROLL_NOTES.length) {
+          <button
+            type="button"
+            className="absolute inset-0 z-10"
+            onMouseDown={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              const step = Math.floor(x / CELL_WIDTH_PX);
+              const row = Math.floor(y / ROW_HEIGHT_PX);
+              if (row >= 0 && row < PIANO_ROLL_NOTES.length) {
                 handleCellClick(PIANO_ROLL_NOTES[row], step);
-             }
-          }}>
+              }
+            }}
+            onClick={() => handleCellClick(PIANO_ROLL_NOTES[0], 0)}
+          >
             {/* Render Notes */}
-            {activeTrack.notes.map(note => {
+            {activeTrack.notes.map((note) => {
               const rowIndex = PIANO_ROLL_NOTES.indexOf(note.note);
               if (rowIndex === -1) return null;
-              
+
               return (
                 <div
                   key={note.id}
-                  className="absolute border border-[#4E4A42] bg-[#4E4A42] opacity-80 shadow-sm pointer-events-none flex items-center px-1 overflow-hidden"
+                  className="pointer-events-none absolute flex items-center overflow-hidden border border-[#4E4A42] bg-[#4E4A42] px-1 opacity-80 shadow-sm"
                   style={{
                     left: note.startStep * CELL_WIDTH_PX,
                     top: rowIndex * ROW_HEIGHT_PX + 1,
@@ -172,7 +224,7 @@ export function PianoRoll({ playheadStep }: { playheadStep: number }) {
                     height: ROW_HEIGHT_PX - 2,
                   }}
                 >
-                  <span className="text-[9px] font-bold text-[#D1CEC1] uppercase tracking-widest truncate">
+                  <span className="truncate text-[9px] font-bold tracking-widest text-[#D1CEC1] uppercase">
                     {note.note}
                   </span>
                 </div>
@@ -181,14 +233,14 @@ export function PianoRoll({ playheadStep }: { playheadStep: number }) {
 
             {/* Playhead in Piano Roll */}
             {playheadStep >= 0 && (
-              <div 
-                className="absolute top-0 bottom-0 w-[2px] bg-[#C13A3A] z-30 pointer-events-none shadow-[0_0_10px_rgba(193,58,58,0.5)]"
+              <div
+                className="pointer-events-none absolute top-0 bottom-0 z-30 w-[2px] bg-[#C13A3A] shadow-[0_0_10px_rgba(193,58,58,0.5)]"
                 style={{ left: playheadStep * CELL_WIDTH_PX }}
               >
-                <div className="absolute top-0 -left-1.5 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-[#C13A3A]" />
+                <div className="absolute top-0 -left-1.5 h-0 w-0 border-t-[8px] border-r-[6px] border-l-[6px] border-t-[#C13A3A] border-r-transparent border-l-transparent" />
               </div>
             )}
-          </div>
+          </button>
         </div>
       </div>
     </div>

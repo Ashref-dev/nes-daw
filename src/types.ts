@@ -1,12 +1,24 @@
-export type InstrumentType = 'square' | 'triangle' | 'pulse' | 'sawtooth' | 'fmsquare' | 'fmsawtooth' | 'fmtriangle' | 'fatsquare' | 'fatsawtooth' | 'fattriangle' | 'pwm' | 'amtriangle';
+export type InstrumentType =
+  | "square"
+  | "triangle"
+  | "pulse"
+  | "sawtooth"
+  | "fmsquare"
+  | "fmsawtooth"
+  | "fmtriangle"
+  | "fatsquare"
+  | "fatsawtooth"
+  | "fattriangle"
+  | "pwm"
+  | "amtriangle";
 
 // 1 step = 1 16th note
 export interface NoteEvent {
-  id: string; 
+  id: string;
   note: string; // e.g., 'C4'
-  startStep: number; 
-  durationSteps: number; 
-  velocity: number; 
+  startStep: number;
+  durationSteps: number;
+  velocity: number;
 }
 
 export interface Track {
@@ -26,4 +38,13 @@ export interface Project {
   tempo: number;
   totalSteps: number; // For example: 64 steps = 4 bars of 4/4
   tracks: Track[];
+}
+
+export interface SavedProject extends Project {
+  updatedAt: number;
+}
+
+export interface ProjectBackup {
+  timestamp: number;
+  project: Project;
 }

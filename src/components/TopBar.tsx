@@ -1,19 +1,69 @@
-import React, { useState } from 'react';
-import { useDAWContext } from '../context/DAWContext';
-import { Play, Square, Download, Upload, Cpu, Music, ChevronDown, X, Search, Trash2, Edit2 } from 'lucide-react';
+import { ChangeEvent, MouseEvent, useEffect, useRef, useState } from "react";
+import { useDAWContext } from "../context/useDAWContext";
+import { ProjectBackup, SavedProject } from "../types";
+import {
+  Play,
+  Square,
+  Cpu,
+  Music,
+  ChevronDown,
+  X,
+  Search,
+  Trash2,
+} from "lucide-react";
 
 export function TopBar() {
-  const { project, setProject, isPlaying, togglePlayback, stopPlayback, setTempo, setTotalSteps, handleGenerateFullSong, handleExtendSong, handleExport, handleImport, newProject, saveManual, getLocalProjects, loadLocalProject, deleteLocalProject, saveToFile, loadFromFile, getBackups, restoreBackup, autoScroll, setAutoScroll } = useDAWContext();
-  const [prompt, setPrompt] = useState('A melancholic chiptune song in the style of NieR Automata');
+  const {
+    project,
+    isPlaying,
+    togglePlayback,
+    stopPlayback,
+    setTempo,
+    setTotalSteps,
+    handleGenerateFullSong,
+    handleExtendSong,
+    handleExport,
+    handleImport,
+    newProject,
+    saveManual,
+    getLocalProjects,
+    loadLocalProject,
+    deleteLocalProject,
+    saveToFile,
+    loadFromFile,
+    getBackups,
+    restoreBackup,
+    autoScroll,
+    setAutoScroll,
+  } = useDAWContext();
+  const [prompt, setPrompt] = useState(
+    "A melancholic chiptune song in the style of NieR Automata",
+  );
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [backupsOpen, setBackupsOpen] = useState(false);
 
   const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const [saveName, setSaveName] = useState(project.name || 'Untitled Project');
+  const [saveName, setSaveName] = useState(project.name || "Untitled Project");
 
   const [loadModalOpen, setLoadModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [localProjectsData, setLocalProjectsData] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [localProjectsData, setLocalProjectsData] = useState<SavedProject[]>(
+    [],
+  );
+  const saveNameInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const backups = getBackups();
+  const filteredLocalProjects = localProjectsData
+    .filter((projectItem) =>
+      (projectItem.name || "Untitled")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()),
+    )
+    .sort(
+      (firstProject, secondProject) =>
+        secondProject.updatedAt - firstProject.updatedAt,
+    );
 
   const openLoadModal = () => {
     setLocalProjectsData(getLocalProjects());
@@ -21,13 +71,31 @@ export function TopBar() {
     setFileMenuOpen(false);
   };
 
-  const handleDeleteLocalProject = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (window.confirm('Delete this project?')) {
+  const handleDeleteLocalProject = (event: MouseEvent, id: string) => {
+    event.stopPropagation();
+
+    if (window.confirm("Delete this project?")) {
       deleteLocalProject(id);
-      setLocalProjectsData(getLocalProjects()); // refresh
+      setLocalProjectsData(getLocalProjects());
     }
   };
+
+  const handleImportFromFile = (event: ChangeEvent<HTMLInputElement>) => {
+    loadFromFile(event);
+    setFileMenuOpen(false);
+  };
+
+  useEffect(() => {
+    if (saveModalOpen) {
+      saveNameInputRef.current?.focus();
+    }
+  }, [saveModalOpen]);
+
+  useEffect(() => {
+    if (loadModalOpen) {
+      searchInputRef.current?.focus();
+    }
+  }, [loadModalOpen]);
 
   const handleSave = () => {
     saveManual(saveName);
@@ -35,71 +103,139 @@ export function TopBar() {
   };
 
   return (
-    <div className="flex-none h-16 bg-[#D1CEC1] border-b border-[#4E4A42] flex items-center px-6 gap-6 text-[#4E4A42] font-sans shadow-sm select-none">
+    <div className="flex h-16 flex-none items-center gap-6 border-b border-[#4E4A42] bg-[#D1CEC1] px-6 font-sans text-[#4E4A42] shadow-sm select-none">
       {/* branding */}
       <div className="flex items-center gap-4 border-r border-[#4E4A42] pr-6">
         <Music size={24} className="text-[#4E4A42] opacity-80" />
         <div className="flex flex-col justify-center">
-          <span className="text-[9px] font-bold tracking-[0.2em] uppercase opacity-60 italic leading-none mb-1">Automata System v2.04</span>
-          <h1 className="text-2xl font-light tracking-tighter uppercase leading-none">RETROLIA.mid</h1>
+          <span className="mb-1 text-[9px] leading-none font-bold tracking-[0.2em] uppercase opacity-60">
+            Browser MIDI DAW
+          </span>
+          <h1 className="text-2xl leading-none font-light tracking-tighter uppercase">
+            nes-daw
+          </h1>
         </div>
       </div>
 
       {/* Transport */}
       <div className="flex items-center gap-2">
         <div className="relative">
-          <button 
+          <button
+            type="button"
             onClick={() => setFileMenuOpen(!fileMenuOpen)}
-            className="flex items-center gap-1 px-3 py-1 bg-transparent border border-[#4E4A42] text-[10px] font-bold tracking-widest uppercase hover:bg-[#4E4A42] hover:text-[#D1CEC1] transition-colors"
+            className="flex items-center gap-1 border border-[#4E4A42] bg-transparent px-3 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
           >
             File <ChevronDown size={10} />
           </button>
           {fileMenuOpen && (
-            <div className="absolute top-full left-0 mt-1 w-48 bg-[#D1CEC1] border border-[#4E4A42] shadow-sm flex flex-col z-50 py-1 text-[10px] font-bold tracking-widest uppercase">
-              <button onClick={() => { newProject(); setFileMenuOpen(false); }} className="px-4 py-2 hover:bg-[#4E4A42] hover:text-[#D1CEC1] text-left transition-colors">New Project</button>
-              <div className="h-px bg-[#4E4A42] opacity-20 my-1" />
-              <button onClick={() => { setSaveName(project.name || 'Untitled Project'); setSaveModalOpen(true); setFileMenuOpen(false); }} className="px-4 py-2 hover:bg-[#4E4A42] hover:text-[#D1CEC1] text-left transition-colors">Save Locally</button>
-              <button onClick={openLoadModal} className="px-4 py-2 hover:bg-[#4E4A42] hover:text-[#D1CEC1] text-left transition-colors">Load Locally</button>
-              <div className="h-px bg-[#4E4A42] opacity-20 my-1" />
-              <button onClick={() => { saveToFile(); setFileMenuOpen(false); }} className="px-4 py-2 hover:bg-[#4E4A42] hover:text-[#D1CEC1] text-left transition-colors">Save to File (.json)</button>
-              <label className="px-4 py-2 hover:bg-[#4E4A42] hover:text-[#D1CEC1] text-left cursor-pointer transition-colors block">
+            <div className="absolute top-full left-0 z-50 mt-1 flex w-48 flex-col border border-[#4E4A42] bg-[#D1CEC1] py-1 text-[10px] font-bold tracking-widest uppercase shadow-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  newProject();
+                  setFileMenuOpen(false);
+                }}
+                className="px-4 py-2 text-left transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+              >
+                New Project
+              </button>
+              <div className="my-1 h-px bg-[#4E4A42] opacity-20" />
+              <button
+                type="button"
+                onClick={() => {
+                  setSaveName(project.name || "Untitled Project");
+                  setSaveModalOpen(true);
+                  setFileMenuOpen(false);
+                }}
+                className="px-4 py-2 text-left transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+              >
+                Save Locally
+              </button>
+              <button
+                type="button"
+                onClick={openLoadModal}
+                className="px-4 py-2 text-left transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+              >
+                Load Locally
+              </button>
+              <div className="my-1 h-px bg-[#4E4A42] opacity-20" />
+              <button
+                type="button"
+                onClick={() => {
+                  saveToFile();
+                  setFileMenuOpen(false);
+                }}
+                className="px-4 py-2 text-left transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+              >
+                Save to File (.json)
+              </button>
+              <label
+                htmlFor="project-file-input"
+                className="block cursor-pointer px-4 py-2 text-left transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+              >
                 Load from File
-                <input type="file" accept=".json" className="hidden" onChange={(e) => { loadFromFile(e); setFileMenuOpen(false); }} />
+                <input
+                  id="project-file-input"
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleImportFromFile}
+                />
               </label>
-              <div className="h-px bg-[#4E4A42] opacity-20 my-1" />
-              <button onClick={() => { setBackupsOpen(!backupsOpen); }} className="px-4 py-2 flex items-center justify-between hover:bg-[#4E4A42] hover:text-[#D1CEC1] text-left transition-colors">
+              <div className="my-1 h-px bg-[#4E4A42] opacity-20" />
+              <button
+                type="button"
+                onClick={() => {
+                  setBackupsOpen(!backupsOpen);
+                }}
+                className="flex items-center justify-between px-4 py-2 text-left transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+              >
                 Restore Backup <ChevronDown size={10} />
               </button>
               {backupsOpen && (
-                <div className="bg-[#BAB5A1] flex flex-col border-y border-[#4E4A42]">
-                  {getBackups().map((b: any, i: number) => (
-                      <button key={b.timestamp} onClick={() => { restoreBackup(b.timestamp); setFileMenuOpen(false); setBackupsOpen(false); }} className="px-4 py-1 hover:bg-[#4E4A42] hover:text-[#D1CEC1] text-left transition-colors border-b border-[#4E4A42]/10 last:border-0 opacity-80">
-                        {new Date(b.timestamp).toLocaleTimeString()}
-                      </button>
+                <div className="flex flex-col border-y border-[#4E4A42] bg-[#BAB5A1]">
+                  {backups.map((backup: ProjectBackup) => (
+                    <button
+                      type="button"
+                      key={backup.timestamp}
+                      onClick={() => {
+                        restoreBackup(backup.timestamp);
+                        setFileMenuOpen(false);
+                        setBackupsOpen(false);
+                      }}
+                      className="border-b border-[#4E4A42]/10 px-4 py-1 text-left opacity-80 transition-colors last:border-0 hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+                    >
+                      {new Date(backup.timestamp).toLocaleTimeString()}
+                    </button>
                   ))}
-                  {getBackups().length === 0 && <span className="px-4 py-1 opacity-50">No backups</span>}
+                  {backups.length === 0 && (
+                    <span className="px-4 py-1 opacity-50">No backups</span>
+                  )}
                 </div>
               )}
             </div>
           )}
         </div>
-        <div className="w-px h-6 bg-[#4E4A42] opacity-20 mx-2" />
-        <button 
+        <div className="mx-2 h-6 w-px bg-[#4E4A42] opacity-20" />
+        <button
+          type="button"
           onClick={togglePlayback}
-          className={`w-8 h-8 flex items-center justify-center border border-[#4E4A42] transition-colors ${isPlaying ? 'bg-[#4E4A42] text-[#D1CEC1]' : 'hover:bg-[#4E4A42] hover:text-[#D1CEC1]'}`}
+          className={`flex h-8 w-8 items-center justify-center border border-[#4E4A42] transition-colors ${isPlaying ? "bg-[#4E4A42] text-[#D1CEC1]" : "hover:bg-[#4E4A42] hover:text-[#D1CEC1]"}`}
         >
-          <Play size={14} fill={isPlaying ? 'currentColor' : 'none'} />
+          <Play size={14} fill={isPlaying ? "currentColor" : "none"} />
         </button>
-        <button 
+        <button
+          type="button"
           onClick={stopPlayback}
-          className="w-8 h-8 flex items-center justify-center border border-[#4E4A42] hover:bg-[#4E4A42] hover:text-[#D1CEC1] transition-colors"
+          className="flex h-8 w-8 items-center justify-center border border-[#4E4A42] transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
         >
           <Square size={14} fill="currentColor" />
         </button>
-        <div className="w-px h-6 bg-[#4E4A42] opacity-20 mx-2" />
-        <button 
+        <div className="mx-2 h-6 w-px bg-[#4E4A42] opacity-20" />
+        <button
+          type="button"
           onClick={() => setAutoScroll(!autoScroll)}
-          className={`px-3 py-1 border border-[#4E4A42] text-[10px] font-bold tracking-widest uppercase transition-colors ${autoScroll ? 'bg-[#4E4A42] text-[#D1CEC1]' : 'bg-transparent hover:bg-[#4E4A42] hover:text-[#D1CEC1]'}`}
+          className={`border border-[#4E4A42] px-3 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${autoScroll ? "bg-[#4E4A42] text-[#D1CEC1]" : "bg-transparent hover:bg-[#4E4A42] hover:text-[#D1CEC1]"}`}
           title="Toggle Auto-Scroll"
         >
           Snap
@@ -107,23 +243,41 @@ export function TopBar() {
       </div>
 
       {/* Tempo & Info */}
-      <div className="flex gap-6 text-[11px] font-bold tracking-widest uppercase items-center">
+      <div className="flex items-center gap-6 text-[11px] font-bold tracking-widest uppercase">
         <div className="flex flex-col items-end">
           <span className="opacity-50">BPM</span>
-          <input 
-            type="number" 
+          <input
+            type="number"
             value={project.tempo}
-            onChange={(e) => setTempo(Math.max(40, Math.min(300, parseInt(e.target.value) || 120)))}
-            className="w-12 bg-transparent text-[#4E4A42] text-right outline-none hover:opacity-80 transition-opacity"
+            onChange={(e) =>
+              setTempo(
+                Math.max(40, Math.min(300, parseInt(e.target.value) || 120)),
+              )
+            }
+            className="w-12 bg-transparent text-right text-[#4E4A42] transition-opacity outline-none hover:opacity-80"
           />
         </div>
-        <div className="w-px h-8 bg-[#4E4A42] opacity-20" />
+        <div className="h-8 w-px bg-[#4E4A42] opacity-20" />
         <div className="flex flex-col items-center">
           <span className="opacity-50">Length (Bars)</span>
-          <div className="flex items-center gap-2 mt-[2px]">
-            <button onClick={() => setTotalSteps(Math.max(16, project.totalSteps - 16))} className="w-4 flex items-center justify-center hover:bg-[#4E4A42] hover:text-[#D1CEC1]">-</button>
+          <div className="mt-[2px] flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setTotalSteps(Math.max(16, project.totalSteps - 16))
+              }
+              className="flex w-4 items-center justify-center hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+            >
+              -
+            </button>
             <span>{project.totalSteps / 16}</span>
-            <button onClick={() => setTotalSteps(project.totalSteps + 16)} className="w-4 flex items-center justify-center hover:bg-[#4E4A42] hover:text-[#D1CEC1]">+</button>
+            <button
+              type="button"
+              onClick={() => setTotalSteps(project.totalSteps + 16)}
+              className="flex w-4 items-center justify-center hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+            >
+              +
+            </button>
           </div>
         </div>
       </div>
@@ -132,24 +286,26 @@ export function TopBar() {
 
       {/* Generation */}
       <div className="flex items-center gap-3">
-        <input 
+        <input
           type="text"
           value={prompt}
-          onChange={e => setPrompt(e.target.value)}
+          onChange={(e) => setPrompt(e.target.value)}
           placeholder="Describe a melancholic song..."
-          className="bg-transparent border-b border-[#4E4A42] border-opacity-30 text-[#4E4A42] px-2 py-1 w-64 text-[11px] font-medium tracking-wide outline-none placeholder-[#4E4A42] placeholder-opacity-50 focus:border-opacity-100 transition-colors"
+          className="border-opacity-30 placeholder-opacity-50 focus:border-opacity-100 w-64 border-b border-[#4E4A42] bg-transparent px-2 py-1 text-[11px] font-medium tracking-wide text-[#4E4A42] placeholder-[#4E4A42] transition-colors outline-none"
         />
         <button
+          type="button"
           onClick={() => handleGenerateFullSong(prompt, 384)}
-          className="flex items-center gap-2 bg-[#4E4A42] text-[#D1CEC1] px-4 py-2 text-[10px] font-bold tracking-[0.2em] uppercase hover:bg-opacity-80 transition-colors whitespace-nowrap shadow-sm"
+          className="hover:bg-opacity-80 flex items-center gap-2 bg-[#4E4A42] px-4 py-2 text-[10px] font-bold tracking-[0.2em] whitespace-nowrap text-[#D1CEC1] uppercase shadow-sm transition-colors"
           title="Generate 24 bars (384 steps) of new song"
         >
           <Cpu size={14} />
           Gen
         </button>
         <button
+          type="button"
           onClick={() => handleExtendSong(prompt, 8)}
-          className="flex items-center gap-2 bg-[#BAB5A1] border border-[#4E4A42] text-[#4E4A42] px-4 py-2 text-[10px] font-bold tracking-[0.2em] uppercase hover:bg-[#4E4A42] hover:text-[#D1CEC1] transition-colors whitespace-nowrap shadow-sm"
+          className="flex items-center gap-2 border border-[#4E4A42] bg-[#BAB5A1] px-4 py-2 text-[10px] font-bold tracking-[0.2em] whitespace-nowrap text-[#4E4A42] uppercase shadow-sm transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
           title="Extend the current song by 8 bars using AI"
         >
           <Cpu size={14} />
@@ -157,48 +313,68 @@ export function TopBar() {
         </button>
       </div>
 
-      <div className="h-8 w-px bg-[#4E4A42] opacity-20 mx-2" />
+      <div className="mx-2 h-8 w-px bg-[#4E4A42] opacity-20" />
 
       {/* IO */}
       <div className="flex items-center gap-2">
-        <button 
+        <button
+          type="button"
           onClick={handleExport}
-          className="bg-[#BAB5A1] border border-[#4E4A42] px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase hover:bg-[#4E4A42] hover:text-[#D1CEC1] transition-colors"
+          className="border border-[#4E4A42] bg-[#BAB5A1] px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
         >
           Export
         </button>
-        <label className="bg-[#BAB5A1] border border-[#4E4A42] px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase cursor-pointer hover:bg-[#4E4A42] hover:text-[#D1CEC1] transition-colors">
+        <label
+          htmlFor="midi-file-input"
+          className="cursor-pointer border border-[#4E4A42] bg-[#BAB5A1] px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+        >
           Import
-          <input type="file" accept=".mid,.midi" className="hidden" onChange={handleImport} />
+          <input
+            id="midi-file-input"
+            type="file"
+            accept=".mid,.midi"
+            className="hidden"
+            onChange={handleImport}
+          />
         </label>
       </div>
 
       {/* Save Modal */}
       {saveModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-[#D1CEC1] border border-[#4E4A42] p-6 shadow-xl w-96 flex flex-col gap-4">
-            <h2 className="text-xl font-light tracking-tighter uppercase">Save Project</h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="flex w-96 flex-col gap-4 border border-[#4E4A42] bg-[#D1CEC1] p-6 shadow-xl">
+            <h2 className="text-xl font-light tracking-tighter uppercase">
+              Save Project
+            </h2>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold tracking-widest uppercase opacity-70">Project Name</label>
+              <label
+                htmlFor="project-name-input"
+                className="text-[10px] font-bold tracking-widest uppercase opacity-70"
+              >
+                Project Name
+              </label>
               <input
+                id="project-name-input"
+                ref={saveNameInputRef}
                 type="text"
                 value={saveName}
-                onChange={e => setSaveName(e.target.value)}
-                className="bg-transparent border-b border-[#4E4A42] outline-none py-1 font-bold text-lg"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                onChange={(e) => setSaveName(e.target.value)}
+                className="border-b border-[#4E4A42] bg-transparent py-1 text-lg font-bold outline-none"
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
               />
             </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button 
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
                 onClick={() => setSaveModalOpen(false)}
-                className="px-4 py-2 border border-[#4E4A42] text-[10px] font-bold tracking-widest uppercase hover:bg-[#4E4A42] hover:text-[#D1CEC1] transition-colors"
+                className="border border-[#4E4A42] px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
               >
                 Cancel
               </button>
-              <button 
+              <button
+                type="button"
                 onClick={handleSave}
-                className="px-4 py-2 bg-[#4E4A42] text-[#D1CEC1] text-[10px] font-bold tracking-widest uppercase hover:opacity-80 transition-opacity"
+                className="bg-[#4E4A42] px-4 py-2 text-[10px] font-bold tracking-widest text-[#D1CEC1] uppercase transition-opacity hover:opacity-80"
               >
                 Save
               </button>
@@ -209,46 +385,71 @@ export function TopBar() {
 
       {/* Load Modal */}
       {loadModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-[#D1CEC1] border border-[#4E4A42] p-6 shadow-xl w-[500px] max-h-[80vh] flex flex-col gap-4 flex-shrink">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-light tracking-tighter uppercase">Load Project</h2>
-              <button onClick={() => setLoadModalOpen(false)} className="hover:opacity-50"><X size={20} /></button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="flex max-h-[80vh] w-[500px] flex-shrink flex-col gap-4 border border-[#4E4A42] bg-[#D1CEC1] p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-light tracking-tighter uppercase">
+                Load Project
+              </h2>
+              <button
+                type="button"
+                onClick={() => setLoadModalOpen(false)}
+                className="hover:opacity-50"
+              >
+                <X size={20} />
+              </button>
             </div>
-            
+
             <div className="flex items-center gap-2 border-b border-[#4E4A42] pb-1 opacity-70 focus-within:opacity-100">
               <Search size={14} />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="SEARCH PROJECTS..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="bg-transparent outline-none flex-1 text-[11px] font-bold tracking-widest uppercase"
-                autoFocus
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-[11px] font-bold tracking-widest uppercase outline-none"
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-[50px]">
-              {localProjectsData
-                .filter(p => (p.name || 'Untitled').toLowerCase().includes(searchQuery.toLowerCase()))
-                .sort((a, b) => b.updatedAt - a.updatedAt)
-                .map((p: any) => (
-                  <div key={p.id} className="flex justify-between items-center p-3 border border-[#4E4A42] bg-[#BAB5A1] group hover:bg-[#4E4A42] hover:text-[#D1CEC1] transition-colors cursor-pointer" onClick={() => { loadLocalProject(p.id); setLoadModalOpen(false); }}>
-                    <div className="flex flex-col">
-                      <span className="font-bold tracking-wider">{p.name || 'Untitled'}</span>
-                      <span className="text-[10px] opacity-70 font-mono mt-1">{new Date(p.updatedAt).toLocaleString()} • {p.tracks?.length || 0} Tracks</span>
-                    </div>
-                    <button 
-                      onClick={(e) => handleDeleteLocalProject(e, p.id)}
-                      className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 text-[#D1CEC1] transition-all rounded"
-                      title="Delete Project"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
+            <div className="flex min-h-[50px] flex-1 flex-col gap-2 overflow-y-auto">
+              {filteredLocalProjects.map((projectItem) => (
+                <div
+                  key={projectItem.id}
+                  className="group flex items-center justify-between border border-[#4E4A42] bg-[#BAB5A1] p-3 transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1]"
+                >
+                  <button
+                    type="button"
+                    className="flex flex-1 cursor-pointer flex-col text-left"
+                    onClick={() => {
+                      loadLocalProject(projectItem.id ?? "");
+                      setLoadModalOpen(false);
+                    }}
+                  >
+                    <span className="font-bold tracking-wider">
+                      {projectItem.name || "Untitled"}
+                    </span>
+                    <span className="mt-1 font-mono text-[10px] opacity-70">
+                      {new Date(projectItem.updatedAt).toLocaleString()} •{" "}
+                      {projectItem.tracks.length} Tracks
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) =>
+                      handleDeleteLocalProject(event, projectItem.id ?? "")
+                    }
+                    className="rounded p-2 text-[#D1CEC1] opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/20"
+                    title="Delete Project"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
               {localProjectsData.length === 0 && (
-                 <div className="text-center py-8 opacity-50 text-[10px] font-bold tracking-widest uppercase">No projects found.</div>
+                <div className="py-8 text-center text-[10px] font-bold tracking-widest uppercase opacity-50">
+                  No projects found.
+                </div>
               )}
             </div>
           </div>
