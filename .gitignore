@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+.playwright-mcp/
+.sisyphus/
+.vercel/
+next-env.d.ts
+package-lock.json
