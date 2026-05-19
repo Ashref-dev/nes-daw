@@ -6,6 +6,7 @@ import { PianoRoll } from "./PianoRoll";
 import * as Tone from "tone";
 import { useGlobalActions } from "../hooks/useGlobalActions";
 import { useComputerKeyboardPiano } from "../hooks/useComputerKeyboardPiano";
+import { useMidiInput } from "../hooks/useMidiInput";
 import { DAWAction } from "../types";
 
 export function Editor() {
@@ -18,6 +19,7 @@ export function Editor() {
     setEditorView,
     toggleEditorView,
     keyboardLayout,
+    keyboardMode,
     isKeyboardRecording,
     togglePlayback,
     stopPlayback,
@@ -88,13 +90,22 @@ export function Editor() {
     ],
   );
 
-  useGlobalActions(actions);
+  const midiInput = useMidiInput({
+    project,
+    activeTrack,
+    isPlaying,
+    isKeyboardRecording,
+    addRecordedNote,
+  });
+
+  useGlobalActions(actions, keyboardMode === "hotkeys");
   useComputerKeyboardPiano({
     keyboardLayout,
     project,
     activeTrack,
     isPlaying,
     isKeyboardRecording,
+    enabled: keyboardMode === "piano",
     addRecordedNote,
   });
 
@@ -121,7 +132,7 @@ export function Editor() {
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-[#D1CEC1] font-sans text-[#4E4A42] uppercase">
-      <TopBar actions={actions} />
+      <TopBar actions={actions} midiInput={midiInput} />
 
       <div className="flex flex-1 flex-col gap-4 overflow-hidden p-6 pb-0">
         <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
@@ -141,7 +152,11 @@ export function Editor() {
               Piano Roll
             </button>
           </div>
-          <span className="opacity-60">Tab switches views · Space plays</span>
+          <span className="opacity-60">
+            {keyboardMode === "hotkeys"
+              ? "Hotkeys active · switch to Piano for FL-style keys"
+              : "Piano mode active · keyboard plays selected track"}
+          </span>
         </div>
 
         {editorView === "timeline" ? (

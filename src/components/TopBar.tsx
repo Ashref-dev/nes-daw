@@ -12,9 +12,18 @@ import {
   Trash2,
   Settings,
 } from "lucide-react";
-import { DAWAction } from "../types";
+import { DAWAction, MidiInputState } from "../types";
 
-export function TopBar({ actions }: { actions: DAWAction[] }) {
+interface TopBarProps {
+  actions: DAWAction[];
+  midiInput: {
+    midiState: MidiInputState;
+    midiInputNames: string[];
+    enableMidiInput: () => Promise<void>;
+  };
+}
+
+export function TopBar({ actions, midiInput }: TopBarProps) {
   const {
     project,
     isPlaying,
@@ -39,6 +48,8 @@ export function TopBar({ actions }: { actions: DAWAction[] }) {
     setAutoScroll,
     keyboardLayout,
     setKeyboardLayout,
+    keyboardMode,
+    setKeyboardMode,
     isKeyboardRecording,
     toggleKeyboardRecording,
     selectedTrackId,
@@ -65,6 +76,12 @@ export function TopBar({ actions }: { actions: DAWAction[] }) {
   const activeTrack = project.tracks.find(
     (track) => track.id === selectedTrackId,
   );
+  const midiLabel =
+    midiInput.midiState === "ready"
+      ? midiInput.midiInputNames.length > 0
+        ? midiInput.midiInputNames.join(", ")
+        : "Ready"
+      : midiInput.midiState;
   const filteredLocalProjects = localProjectsData
     .filter((projectItem) =>
       (projectItem.name || "Untitled")
@@ -259,6 +276,18 @@ export function TopBar({ actions }: { actions: DAWAction[] }) {
         >
           Rec Keys
         </button>
+        <button
+          type="button"
+          onClick={() => void midiInput.enableMidiInput()}
+          disabled={
+            midiInput.midiState === "unsupported" ||
+            midiInput.midiState === "requesting"
+          }
+          className={`border border-[#4E4A42] px-3 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${midiInput.midiState === "ready" ? "bg-[#4E4A42] text-[#D1CEC1]" : "bg-transparent hover:bg-[#4E4A42] hover:text-[#D1CEC1]"}`}
+          title="Enable connected MIDI keyboard input"
+        >
+          MIDI
+        </button>
       </div>
 
       {/* Tempo & Info */}
@@ -303,12 +332,16 @@ export function TopBar({ actions }: { actions: DAWAction[] }) {
 
       <div className="flex items-center gap-3 text-[10px] font-bold tracking-widest uppercase">
         <div className="flex flex-col items-end">
-          <span className="opacity-50">Keyboard</span>
+          <span className="opacity-50">Keys</span>
+          <span>{keyboardMode}</span>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="opacity-50">Layout</span>
           <span>{keyboardLayout}</span>
         </div>
         <div className="flex flex-col items-end">
-          <span className="opacity-50">Playing</span>
-          <span>{activeTrack ? activeTrack.instrument : "No Track"}</span>
+          <span className="opacity-50">MIDI</span>
+          <span className="max-w-24 truncate">{midiLabel}</span>
         </div>
         <div className="relative">
           <button
@@ -335,6 +368,24 @@ export function TopBar({ actions }: { actions: DAWAction[] }) {
               </div>
 
               <label
+                htmlFor="keyboard-mode-select"
+                className="flex flex-col gap-1 text-[10px] font-bold tracking-widest uppercase"
+              >
+                Mode
+                <select
+                  id="keyboard-mode-select"
+                  value={keyboardMode}
+                  onChange={(event) =>
+                    setKeyboardMode(event.target.value as "hotkeys" | "piano")
+                  }
+                  className="border border-[#4E4A42] bg-transparent px-2 py-2 font-bold text-[#4E4A42] outline-none"
+                >
+                  <option value="hotkeys">Hotkeys</option>
+                  <option value="piano">Piano</option>
+                </select>
+              </label>
+
+              <label
                 htmlFor="keyboard-layout-select"
                 className="flex flex-col gap-1 text-[10px] font-bold tracking-widest uppercase"
               >
@@ -351,6 +402,34 @@ export function TopBar({ actions }: { actions: DAWAction[] }) {
                   <option value="azerty">AZERTY</option>
                 </select>
               </label>
+
+              <div className="flex flex-col gap-2 border border-[#4E4A42]/30 p-3 text-[10px] font-bold tracking-widest uppercase">
+                <div className="flex items-center justify-between gap-3">
+                  <span>MIDI Keyboard</span>
+                  <button
+                    type="button"
+                    onClick={() => void midiInput.enableMidiInput()}
+                    disabled={
+                      midiInput.midiState === "unsupported" ||
+                      midiInput.midiState === "requesting"
+                    }
+                    className="border border-[#4E4A42] px-2 py-1 transition-colors hover:bg-[#4E4A42] hover:text-[#D1CEC1] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {midiInput.midiState === "ready" ? "Enabled" : "Enable"}
+                  </button>
+                </div>
+                <span className="opacity-60">{midiLabel}</span>
+              </div>
+
+              <div className="flex flex-col gap-1 text-[10px] font-bold tracking-widest uppercase opacity-60">
+                <span>
+                  Playing: {activeTrack ? activeTrack.instrument : "No Track"}
+                </span>
+                <span>
+                  Piano mode makes letter keys play notes. Hotkeys mode keeps
+                  shortcuts active.
+                </span>
+              </div>
 
               <div className="flex flex-col gap-2">
                 <span className="text-[10px] font-bold tracking-widest uppercase opacity-60">
